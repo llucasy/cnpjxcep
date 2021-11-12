@@ -34,6 +34,7 @@ app.get('/cnpjxcep', async(req, res) => {
     socket.emit('info', 'buscando...')
     
     data.length = 0
+    filteredData.length = 0
     await f1(CEP)
     await f2(0, 0, socket)
     filteredData = data.filter(value => value.situacao === 'Ativa')
@@ -46,6 +47,8 @@ app.get('/cnpjxcep', async(req, res) => {
     }
 
     socket.on('disconnect', function(){
+      data.length = 0
+      filteredData.length = 0
       console.log('user disconnected');
     });
 
