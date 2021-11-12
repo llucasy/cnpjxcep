@@ -33,7 +33,7 @@ app.get('/cnpjxcep', async(req, res) => {
 
     socket.emit('info', 'buscando...')
     
-    data = []
+    data.length = 0
     await f1(CEP)
     await f2(0, 0, socket)
     filteredData = data.filter(value => value.situacao === 'Ativa')
