@@ -84,7 +84,7 @@ const f2 = async (i, jump = 0, socket) => {
     data[i + jump].situacao = arr.filter(value => value.substring(0, 9) === 'Situação:')[0].substring(10)
     data[i + jump].razao = arr.filter(value => value.substring(0, 13) === 'Razão Social:')[0].substring(14)
   })
-  if(data[i + jump].situacao = 'Ativa') {
+  if(data[i + jump].situacao === 'Ativa') {
     socket.emit('busca', data[i + jump])
   }
   if ((i + jump) !== data.length - 1) {
@@ -106,7 +106,6 @@ const newLoop = async (final, inicial, socket) => {
   if(data.filter(value => value.situacao === 'Ativa').length < 8) {
     setTimeout(async() => await newLoop(final, inicial), 2000)
   } else {
-    socket.emit('busca', data.filter(value => value.situacao === 'Ativa'))
     console.log(data.filter(value => value.situacao === 'Ativa'))
   }
 }
