@@ -45,6 +45,10 @@ app.get('/cnpjxcep', async(req, res) => {
       socket.emit('busca', filteredData)
     }
 
+    socket.on('disconnect', function(){
+      console.log('user disconnected');
+    });
+
   })
 
   res.render('cnpjxcep', {inicial, final})
@@ -103,9 +107,6 @@ const newLoop = async (final, inicial, socket) => {
     console.log(data.filter(value => value.situacao === 'Ativa'))
   }
 }
-
-
-
 
 
 
