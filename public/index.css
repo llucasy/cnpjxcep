@@ -1,0 +1,43 @@
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  text-align: center;
+  background-color: darkslateblue;
+  color:white;
+}
+
+a {
+  color:yellowgreen;
+}
+
+form {
+  margin: 10px;
+}
+
+form input {
+  border-radius: 25px;
+}
+
+form button {
+  border-radius: 25px;
+}
+
+li {
+  list-style-type: none;
+}
+
+ul{
+  text-align: left;
+  border: 2px solid cornflowerblue;
+  margin: 5px;
+  padding: 5px;
+}
+
+main {
+  margin: 0 auto;
+  width: 600px;
+}
