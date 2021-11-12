@@ -63,7 +63,7 @@ app.get('/cnpjxcep', async(req, res) => {
     await f1(CEP)
     await f2(0, jump)
     if(data.filter(value => value.situacao === 'Ativa').length < 8) {
-      setTimeout(async() => await newLoop(), 2000)
+      setTimeout(async() => await newLoop(req.query.final), 2000)
     } else {
       console.log(data.filter(value => value.situacao === 'Ativa'))
       res.render('cnpjxcep', {inicial, final, filteredData: data.filter(value => value.situacao === 'Ativa')})
