@@ -10,14 +10,35 @@
 <body>
   <h1><%= inicial %> até o final <%= final %></h1>
   <main>
-    <% filteredData.forEach( data => { %>
-    <ul>
-      <li><b><a href="<%= data.link %>" target="_blank">Titulo:</b> <%= data.title %></a></li>
-      <li><b>Razão Social:</b> <%= data.razao %></li>
-      <li><b>CNPJ:</b> <%= data.cnpj %></li>
-      <li><b>Situação:</b> <%= data.situacao %></li>
-    </ul>
-    <% }) %>
+    
   </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+      const socket = io();
+      socket.on('info', function(msg) {
+        const p = document.createElement('p');
+        p.innerHTML = 'Buscando...'
+        document.querySelector('main').appendChild(p)
+      })
+      socket.on('busca', async function(data) {
+        const ul = document.createElement('ul');
+
+          ul.innerHTML = `
+            <li><b><a href="${data.link}" target="_blank">Titulo:</b> ${data.title}</a></li>
+            <li><b>Razão Social:</b> ${data.razao}</li>
+            <li><b>CNPJ:</b> ${data.cnpj}</li>
+            <li><b>Situação:</b> ${data.situacao}</li>`;
+
+          document.querySelector('main').appendChild(ul)
+
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      setTimeout(() => {
+        document.querySelector('main p').innerHTML = 'Concluído'
+        socket.disconnect()
+      }, 50000)
+
+
+  </script>
 </body>
 </html>
