@@ -75,7 +75,7 @@ app.get('/cnpjxcep', async(req, res) => {
   filteredData = data.filter(value => value.situacao === 'Ativa')
 
   if (filteredData.length < 8) {
-    filteredData = await newLoop(final)
+    filteredData = await newLoop(req.query.final)
   } else {
     console.log(filteredData)
   }
