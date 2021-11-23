@@ -9,13 +9,14 @@
 </head>
 <body>
   <h1>CNPJ ativos x CEP</h1>
+  <br><br>
   <form action="/cnpjxcep" method="get">
-    <label for="incial">CEP Inicial:</label>
-    <input type="text" id="inicial" name="inicial" required>
-    <label for="final">CEP Final:</label>
-    <input type="text" id="final" name="final" required>
+    <label for="cep">CEP:</label>
+    <input type="text" id="cep" name="cep" required>
     <button type="submit">Enviar</button>
   </form>
-  <p>Favor digitar os CEP com traços, Ex: Inicial 57303-749, Final 57303-770</p>
+  <br><br>
+  <p><b>Favor digitar o CEP com traço</b> Ex: 57303-749, 57303-770.</p><br>
+  <p><i>Será pesquisado CNPJ's na mesma região/cidade do CEP informado.</i></p>
 </body>
 </html>
