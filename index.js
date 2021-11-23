@@ -1,11 +1,11 @@
 import axios from "axios";
 import cheerio from "cheerio";
 import express from "express";
-
-const app = express()
-
 import {Server, Socket} from 'socket.io'
 import { createServer } from 'http';
+import globaldb from "./db.js";
+
+const app = express()
 
 var server = createServer(app);
 var io = new Server(server)
@@ -16,6 +16,14 @@ app.set('views', './views')
 app.use(express.static('public'))
 
 app.get('/', (req, res) => {
+
+  globaldb.findAll({}, (e, docs) => {
+    if (e) { return console.log(e);}
+
+    console.log(docs);
+
+  })
+
   res.render('index')
 })
 
