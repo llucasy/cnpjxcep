@@ -33,36 +33,43 @@ let data = []
 
 
 app.get('/cnpjxcep', async(req, res) => {
-  const inicial = req.query.inicial
-  const final = req.query.final
-  let CEP = inicial
-  
-  io.on('connection', async(socket) => {
+  const cep = String(req.query.cep)
 
-    socket.emit('info', 'buscando...')
-    
-    data.length = 0
-    filteredData.length = 0
-    await f1(CEP)
-    await f2(0, 0, socket)
-    filteredData = data.filter(value => value.situacao === 'Ativa')
-  
-    if (filteredData.length < 8) {
-      filteredData = await newLoop(final, inicial, socket)
-    } else {
-      console.log(filteredData)
-      socket.emit('busca', filteredData)
+  const response = await axios.get(`https://www.cepaberto.com/api/v3/cep?cep=${cep.substring(0, 5)}${cep.substring(6)}`, {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'Authorization': `Token token=${process.env.CEPABERTO_TOKEN}`
     }
-
-    socket.on('disconnect', function(){
-      data.length = 0
-      filteredData.length = 0
-      console.log('user disconnected');
-    });
-
   })
 
-  res.render('cnpjxcep', {inicial, final})
+  console.log(response.data.cidade.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(" ", "-").toLowerCase() + '-' + response.data.estado.sigla.toLowerCase());
+  
+  // io.on('connection', async(socket) => {
+
+  //   socket.emit('info', 'buscando...')
+    
+  //   data.length = 0
+  //   filteredData.length = 0
+  //   await f1(CEP)
+  //   await f2(0, 0, socket)
+  //   filteredData = data.filter(value => value.situacao === 'Ativa')
+  
+  //   if (filteredData.length < 8) {
+  //     filteredData = await newLoop(final, inicial, socket)
+  //   } else {
+  //     console.log(filteredData)
+  //     socket.emit('busca', filteredData)
+  //   }
+
+  //   socket.on('disconnect', function(){
+  //     data.length = 0
+  //     filteredData.length = 0
+  //     console.log('user disconnected');
+  //   });
+
+  // })
+
+  res.render('cnpjxcep', {inicial: '0000', final: '0000'})
 
 })
 
