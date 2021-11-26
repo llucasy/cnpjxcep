@@ -4,6 +4,7 @@ import express from "express";
 import {Server, Socket} from 'socket.io'
 import { createServer } from 'http';
 import globaldb from "./db.js";
+import { getCNPJ } from "./core/getCNPJ.js";
 
 const app = express()
 
@@ -42,8 +43,11 @@ app.get('/cnpjxcep', async(req, res) => {
     }
   })
 
-  console.log(response.data.cidade.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(" ", "-").toLowerCase() + '-' + response.data.estado.sigla.toLowerCase());
+  const cidade = response.data.cidade.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(" ", "-").toLowerCase() + '-' + response.data.estado.sigla.toLowerCase()
+
+  const links = await getCNPJ(cidade)
   
+  console.log(links);
   // io.on('connection', async(socket) => {
 
   //   socket.emit('info', 'buscando...')
