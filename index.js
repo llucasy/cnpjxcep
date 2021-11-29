@@ -1,10 +1,9 @@
 import axios from "axios";
 import cheerio from "cheerio";
 import express from "express";
-import {Server, Socket} from 'socket.io'
+import {Server} from 'socket.io'
 import { createServer } from 'http';
 import globaldb from "./db.js";
-import { getCNPJ } from "./core/getCNPJ.js";
 
 const app = express()
 
@@ -18,23 +17,23 @@ app.use(express.static('public'))
 
 app.get('/', (req, res) => {
 
-  globaldb.findAll({}, (e, docs) => {
+  globaldb.count({}, (e, count) => {
     if (e) { return console.log(e);}
 
-    console.log(docs);
-
+    res.render('index', {count})
   })
 
-  res.render('index')
 })
-
-let oldCEP = ''
-let filteredData = []
-let data = []
 
 
 app.get('/cnpjxcep', async(req, res) => {
   const cep = String(req.query.cep)
+
+  if (cep.length !== 9) {
+    return res.send('CEP inválido, quatidade de dígitos não bate!')
+  } else if (isNaN(cep.substring(0, 5)) || isNaN(cep.substring(6))) {
+    return res.send('Além do traço, o CEP deve conter somente números')
+  }
 
   const response = await axios.get(`https://www.cepaberto.com/api/v3/cep?cep=${cep.substring(0, 5)}${cep.substring(6)}`, {
     headers: {
@@ -45,91 +44,79 @@ app.get('/cnpjxcep', async(req, res) => {
 
   const cidade = response.data.cidade.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(" ", "-").toLowerCase() + '-' + response.data.estado.sigla.toLowerCase()
 
-  const links = await getCNPJ(cidade)
   
-  console.log(links);
-  // io.on('connection', async(socket) => {
+  io.on('connection', async (socket) => {
+    socket.emit('info', 'buscando...')
 
-  //   socket.emit('info', 'buscando...')
+    socket.on('executar', async() => {
+      globaldb.findAll({ localization: cidade }, async(e, docs) => {
+        if (e) { return console.log(e);}
+
+        let countCNPJs = 0
     
-  //   data.length = 0
-  //   filteredData.length = 0
-  //   await f1(CEP)
-  //   await f2(0, 0, socket)
-  //   filteredData = data.filter(value => value.situacao === 'Ativa')
+        if (docs.length > 0) {
+          countCNPJs += docs.length
+          docs.forEach((doc) => {
+            socket.emit('busca', doc)
+          })
+        }
+
+        if (countCNPJs < 15) {
+
+          const links = await (await axios.get(`https://getcnpj.vercel.app/api/hello?cidade=${cidade}`)).data
+          
+          const cnpjs = links.cnpjs.filter(value => value.substring(17) !== (docs.find( obj => obj.cnpj === value.substring(17)) || {}).cnpj)
+
+          
+          const validatecnpj = async (cnpjs, i) => {
+
+            socket.emit('info', `Buscando ${i + 1} de ${cnpjs.length} da primeira página...`)
+            
+            const data = {}
+            const cnpj = cnpjs[i].substring(17)
+            
+            const dataOfCNPJ = await (await axios.get(`https://getcnpj.vercel.app/api/validatecnpj?cnpj=${cnpj}`)).data
+            
+            data.razao = dataOfCNPJ.filter(value => value.substring(0, 13) === 'Razão Social:')[0].substring(14)
+            data.cnpj = cnpj
+            data.situacao = dataOfCNPJ.filter(value => value.substring(0, 9) === 'Situação:')[0].substring(10)
+            data.cep = (dataOfCNPJ.filter(value => value.substring(0, 4) === 'CEP:')[0] || '').substring(5)
+            data.localization = cidade
+            data.lastCheck = new Date()
+            
+            if(data.situacao === 'Ativa') {
+              socket.emit('busca', data)
+              countCNPJs ++
+              globaldb.insertMany([data], (err, result) => {
+                if (e) { return console.log(e)}
+              }) 
+            }
+            
+            if(i < (cnpjs.length - 1) && countCNPJs < 15) {
+              i ++
+              validatecnpj(cnpjs, i)
+            } else {
+              socket.emit('info', 'Concluído')
+            }
+          }
+
+          await validatecnpj(cnpjs, 0)
+        } else {
+          socket.emit('info', 'Concluído')
+        }
+      })
   
-  //   if (filteredData.length < 8) {
-  //     filteredData = await newLoop(final, inicial, socket)
-  //   } else {
-  //     console.log(filteredData)
-  //     socket.emit('busca', filteredData)
-  //   }
+      socket.on('disconnect', async() => {
+        console.log('user disconnected');
+        io.removeAllListeners()
+      });
+      
+    })
+  })
 
-  //   socket.on('disconnect', function(){
-  //     data.length = 0
-  //     filteredData.length = 0
-  //     console.log('user disconnected');
-  //   });
-
-  // })
-
-  res.render('cnpjxcep', {inicial: '0000', final: '0000'})
+  res.render('cnpjxcep', { cep, cidade: response.data.cidade.nome})
 
 })
-
-const f1 = async CEP => {
-  await axios(`https://www.google.com.br/search?q=${CEP}+site%3Acnpj.biz`).then(response => {
-    const html = response.data
-    const $ = cheerio.load(html)
-    $('h3', html).each(function() {
-      const title = $(this).text()
-      const link = $(this).parent().attr('href').substring(7, 38)
-      const cnpj = link.substring(17) || ''
-      if(link.substring(8, 12) === 'cnpj') {
-        data.push({title, link, cnpj})
-      }
-    })
-  })
-}
-
-const f2 = async (i, jump = 0, socket) => {
-  await axios(`https://cnpj.biz/${data[i + jump].cnpj}`).then( async response => {
-    const html = response.data
-    const $ = cheerio.load(html)
-    const arr = []
-    $('.row p', html).each(async function() {
-      arr.push($(this).text())
-    })
-    data[i + jump].situacao = arr.filter(value => value.substring(0, 9) === 'Situação:')[0].substring(10)
-    data[i + jump].razao = arr.filter(value => value.substring(0, 13) === 'Razão Social:')[0].substring(14)
-  })
-  if(data[i + jump].situacao === 'Ativa') {
-    socket.emit('busca', data[i + jump])
-  }
-  if ((i + jump) !== data.length - 1) {
-    i++;
-    await f2(i, jump, socket)
-  }
-}
-
-const newLoop = async (final, inicial, socket) => {
-  final = Number(final.substring(6))
-  oldCEP = inicial
-  inicial = `${inicial.substring(0,5)}-${Number(inicial.substring(6)) < final? Number(inicial.substring(6)) + 1: Number(inicial.substring(6))}`
-  if (oldCEP === inicial) {
-    return
-  }
-  let jump = data.length - 1
-  await f1(inicial)
-  await f2(0, jump, socket)
-  if(data.filter(value => value.situacao === 'Ativa').length < 8) {
-    setTimeout(async() => await newLoop(final, inicial), 2000)
-  } else {
-    console.log(data.filter(value => value.situacao === 'Ativa'))
-  }
-}
-
-
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => console.log('servidor no ar'))

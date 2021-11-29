@@ -8,35 +8,45 @@
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <h1><%= inicial %> até o final <%= final %></h1>
+  <h1>CEP: <%= cep %> da cidade: <%= cidade %></h1>
   <main>
     
   </main>
+  <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1.8.21/locale/pt-br.js"></script>
+  <script src="https://unpkg.com/dayjs@1.8.21/plugin/relativeTime.js"></script>
+  <script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
+  <script>dayjs.locale('pt-br')</script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-      const socket = io();
+      document.querySelector("main").innerHTML = " ";
+      const p = document.createElement('p');
+      document.querySelector('main').appendChild(p)
+      
+      const socket = io({transports: ['websocket']});
+      socket.emit('executar', 'executar')
       socket.on('info', function(msg) {
-        const p = document.createElement('p');
-        p.innerHTML = 'Buscando...'
-        document.querySelector('main').appendChild(p)
+        p.innerHTML = msg
       })
       socket.on('busca', async function(data) {
-        const ul = document.createElement('ul');
-
+        
+        let ul = document.createElement('ul');
           ul.innerHTML = `
-            <li><b><a href="${data.link}" target="_blank">Titulo:</b> ${data.title}</a></li>
-            <li><b>Razão Social:</b> ${data.razao}</li>
+            <li><b><a href="https://cnpj.biz/${data.cnpj}" target="_blank">Razão Social:</b> ${data.razao}</a></li>
             <li><b>CNPJ:</b> ${data.cnpj}</li>
-            <li><b>Situação:</b> ${data.situacao}</li>`;
+            <li><b>Situação:</b> ${data.situacao}</li>
+            <li><b>CEP:</b> ${data.cep}</li>
+            <li><b>Última consulta:</b> Foi ${dayjs(data.lastCheck).fromNow()}</li>`
 
           document.querySelector('main').appendChild(ul)
 
-        window.scrollTo(0, document.body.scrollHeight);
+        // window.scrollTo(0, document.body.scrollHeight);
       });
-      setTimeout(() => {
-        document.querySelector('main p').innerHTML = 'Concluído'
-        socket.disconnect()
-      }, 50000)
+      socket.on('info', function(msg) {
+        if (msg === 'Concluído') { 
+          socket.disconnect()
+        }
+      })
 
 
   </script>

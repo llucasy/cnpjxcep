@@ -38,4 +38,12 @@ mongodb.MongoClient
     .deleteOne({ cnpj }, callback);
 }
 
-export default { findAll, updateOne, deleteOne }
+function count(item, callback) {
+  global.conn.collection("cnpjs").countDocuments(item, {}, callback);
+}
+
+function insertMany(item, callback) {
+  global.conn.collection("cnpjs").insertMany(item, callback);
+}
+
+export default { findAll, updateOne, deleteOne, count, insertMany }
