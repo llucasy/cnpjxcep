@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,10 +8,12 @@
   <title>CNPJ x CEP</title>
   <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
-  <h1>CEP: <%= cep %> da cidade: <%= cidade %></h1>
+  <h1>CEP: <%= cep %> da cidade: <%= cidade %>
+  </h1>
   <main>
-    
+
   </main>
   <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
   <script src="https://unpkg.com/dayjs@1.8.21/locale/pt-br.js"></script>
@@ -19,36 +22,71 @@
   <script>dayjs.locale('pt-br')</script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-      document.querySelector("main").innerHTML = " ";
-      const p = document.createElement('p');
-      document.querySelector('main').appendChild(p)
-      
-      const socket = io({transports: ['websocket']});
-      socket.emit('executar', 'executar')
-      socket.on('info', function(msg) {
-        p.innerHTML = msg
-      })
-      socket.on('busca', async function(data) {
-        
-        let ul = document.createElement('ul');
-          ul.innerHTML = `
+
+    const copyToClipboard = copy => {
+      let inputCopy = document.createElement("input")
+      inputCopy.value = copy
+
+      document.body.appendChild(inputCopy)
+
+      inputCopy.select()
+      inputCopy.setSelectionRange(0, 99999)
+      document.execCommand('copy')
+
+      document.body.removeChild(inputCopy)
+      alert(`CNPJ ${copy} copiado 😉`)
+    }
+
+    document.querySelector("main").innerHTML = " ";
+    const p = document.createElement('p');
+    document.querySelector('main').appendChild(p)
+
+    const socket = io({ transports: ['websocket'] });
+    socket.emit('executar', 'executar')
+    socket.on('info', function (msg) {
+      p.innerHTML = msg
+    })
+
+    let datalistId = 0
+
+    socket.on('busca', function (data) {
+
+      let ul = document.createElement('ul');
+      ul.innerHTML = `
             <li><b><a href="https://cnpj.biz/${data.cnpj}" target="_blank">Razão Social:</b> ${data.razao}</a></li>
-            <li><b>CNPJ:</b> ${data.cnpj}</li>
+            <li><b>CNPJ:</b> ${data.cnpj} <button onclick=copyToClipboard(${data.cnpj})>Copiar CNPJ</button></li>
             <li><b>Situação:</b> ${data.situacao}</li>
             <li><b>CEP:</b> ${data.cep}</li>
-            <li><b>Última consulta:</b> Foi ${dayjs(data.lastCheck).fromNow()}</li>`
+            <li><b>Última consulta:</b> Foi ${dayjs(data.lastCheck).fromNow()}</li>
+            <li><b>Lojas disponiveis:</b>
+              <input list="lojasFree${++ datalistId}" name="lojasFree">
+              <datalist id="lojasFree${datalistId}">
+              <option></option>
+                ${data.lojas.join(' ')}
+              </datalist>
+              <button onclick="Marcar(${datalistId}, ${data.cnpj})">Marcar como usado</button>
+            </li>`
 
-          document.querySelector('main').appendChild(ul)
+      document.querySelector('main').appendChild(ul)
 
-        // window.scrollTo(0, document.body.scrollHeight);
-      });
-      socket.on('info', function(msg) {
-        if (msg === 'Concluído') { 
-          socket.disconnect()
-        }
-      })
+      // window.scrollTo(0, document.body.scrollHeight);
+    });
+    socket.on('info', function (msg) {
+      if (msg === 'Concluído') {
+        socket.disconnect()
+      }
+    })
 
+    function Marcar(datalistId, cnpj) {
+      const chosenStore = document.querySelector(`input[list='lojasFree${datalistId}']`).value
 
+      if (chosenStore === '') {
+        alert('O campo (Lojas disponiveis:) não pode estar em branco/vazio 🤨')
+      } else {
+        fetch(`/lojas?cnpj=${cnpj}&loja=${chosenStore}`).then(res => res.json()).then(({message}) => { alert(message)})
+      }
+    }
   </script>
 </body>
+
 </html>

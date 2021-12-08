@@ -1,5 +1,4 @@
 import axios from "axios";
-import cheerio from "cheerio";
 import express from "express";
 import {Server} from 'socket.io'
 import { createServer } from 'http';
@@ -10,6 +9,8 @@ const app = express()
 var server = createServer(app);
 var io = new Server(server)
 
+const lojasList = ['Abastex', 'Compra Agora', 'Compra Food Service', 'Coty-lojadovarejo', 'Faber Castell', 'Hersheys', 'Josapar-diretodajosapar', 'Mondelez', 'Omron', 'SCJ - Loja Perfeita', 'Vila Nova']
+const lojasListOption = lojasList.map( e => `<option>${e}</option>`)
 
 app.set('view engine', 'ejs')
 app.set('views', './views')
@@ -57,6 +58,11 @@ app.get('/cnpjxcep', async(req, res) => {
         if (docs.length > 0) {
           countCNPJs += docs.length
           docs.forEach((doc) => {
+            if (doc.hasOwnProperty('lojas')) {
+              doc.lojas = doc.lojas.map( e => `<option>${e}</option>`)
+            } else {
+              doc.lojas = lojasListOption
+            }
             socket.emit('busca', doc)
           })
         }
@@ -85,11 +91,12 @@ app.get('/cnpjxcep', async(req, res) => {
             data.lastCheck = new Date()
             
             if(data.situacao === 'Ativa') {
-              socket.emit('busca', data)
               countCNPJs ++
               globaldb.insertMany([data], (err, result) => {
                 if (e) { return console.log(e)}
               }) 
+              data.lojas = lojasListOption
+              socket.emit('busca', data)
             }
             
             if(i < (cnpjs.length - 1) && countCNPJs < 15) {
@@ -116,6 +123,44 @@ app.get('/cnpjxcep', async(req, res) => {
 
   res.render('cnpjxcep', { cep, cidade: response.data.cidade.nome})
 
+})
+
+app.get('/lojas', (req, res) => {
+
+  const cnpj = String(req.query.cnpj)
+  const loja = String(req.query.loja)
+
+  globaldb.findAll({ cnpj }, (e, docs) => {
+    if (e) { return console.log(e);}
+
+    if (docs[0].hasOwnProperty('lojas') && docs[0].lojas.length > 0) {
+      if (docs[0].lojas.find( arr => arr === loja) === loja ) {
+        const lojas = docs[0].lojas.filter( e => loja !== e)
+
+        globaldb.updateOne(cnpj, {lojas}, (e, result) => {
+          if (e) { return console.log(e);}
+          
+           return res.send({message: `Removida a loja ${loja} da lista de lojas disponíveis 😎`})
+        })
+
+      } else {
+        return res.send({message: 'Essa loja não existe ou não está mais disponível 😪'})
+      }
+
+    } else if (lojasList.find( arr => arr === loja) === loja){
+      const lojas = lojasList.filter( e => loja !== e)
+      
+      globaldb.updateOne(cnpj, {lojas}, (e, result) => {
+        if (e) { return console.log(e);}
+        
+         return res.send({message: `Removida a loja ${loja} da lista de lojas disponíveis 🙂`})
+      })
+    } else {
+      res.send({message: `Algo deu errado, avisar o Lucas 😅, zoeira essa loja não existe!`})      
+    }
+    
+  })
+  
 })
 
 const port = process.env.PORT || 3000;
