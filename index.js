@@ -70,6 +70,8 @@ app.get('/cnpjxcep', async(req, res) => {
         if (countCNPJs < 15) {
 
           const links = await (await axios.get(`https://getcnpj.vercel.app/api/hello?cidade=${cidade}`)).data
+
+          links.cnpjs.shift()
           
           const cnpjs = links.cnpjs.filter(value => value.substring(17) !== (docs.find( obj => obj.cnpj === value.substring(17)) || {}).cnpj)
 
@@ -95,8 +97,7 @@ app.get('/cnpjxcep', async(req, res) => {
               globaldb.insertMany([data], (err, result) => {
                 if (e) { return console.log(e)}
               }) 
-              data.lojas = lojasListOption
-              socket.emit('busca', data)
+              socket.emit('busca', {...data, lojas: lojasListOption})
             }
             
             if(i < (cnpjs.length - 1) && countCNPJs < 15) {
